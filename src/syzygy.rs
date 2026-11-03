@@ -172,7 +172,7 @@ pub fn probe_wdl(pos: &Bitboard) -> Option<i32> {
 mod c {
     extern "C" {
         pub static TB_LARGEST: u32;
-        pub fn tb_init(filename: *const i8) -> bool;
+        pub fn tb_init(filename: *const std::os::raw::c_char) -> bool;
         pub fn tb_probe_wdl_wrapper(
             white: u64,
             black: u64,
