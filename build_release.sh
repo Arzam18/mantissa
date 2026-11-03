@@ -37,6 +37,6 @@ cp ./target/x86_64-pc-windows-gnu/release/mantissa.exe release/mantissa-$VERSION
 RUSTFLAGS='-C target-feature=+sse3' cargo rustc --target=x86_64-pc-windows-gnu
 cp ./target/x86_64-pc-windows-gnu/release/mantissa.exe release/mantissa-$VERSION-windows-sse3-no-popcnt.exe
 
-# Android
-cargo rustc --release --target=aarch64-linux-android
-cp ./target/aarch64-linux-android/release/mantissa release/mantissa-$VERSION-aarch64-android
+# Android ARM64 (AArch64) with mandatory NEON SIMD enabled.
+RUSTFLAGS='-C target-feature=+neon' cargo build --release --target=aarch64-linux-android
+cp ./target/aarch64-linux-android/release/mantissa release/mantissa-$VERSION-aarch64-android-neon
