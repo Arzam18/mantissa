@@ -1,0 +1,65 @@
+name: Build Android ARM64 (NEON)
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-arm64:
+    name: Build Mantissa for Android ARM64
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_NDK_VERSION: 27.2.12479018
+      ANDROID_API_LEVEL: 24
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android NDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager --install "ndk;${ANDROID_NDK_VERSION}"
+
+      - name: Set up Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: aarch64-linux-android
+
+      - name: Configure Android cross-compilers
+        shell: bash
+        run: |
+          NDK_BIN="${ANDROID_HOME}/ndk/${ANDROID_NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          test -x "${NDK_BIN}/aarch64-linux-android${ANDROID_API_LEVEL}-clang"
+          test -x "${NDK_BIN}/llvm-ar"
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=${NDK_BIN}/aarch64-linux-android${ANDROID_API_LEVEL}-clang" >> "${GITHUB_ENV}"
+          echo "CC_aarch64_linux_android=${NDK_BIN}/aarch64-linux-android${ANDROID_API_LEVEL}-clang" >> "${GITHUB_ENV}"
+          echo "AR_aarch64_linux_android=${NDK_BIN}/llvm-ar" >> "${GITHUB_ENV}"
+
+      - name: Build Mantissa (ARM64 + NEON)
+        env:
+          RUSTFLAGS: -C target-feature=+neon
+        run: cargo build --release --target aarch64-linux-android
+
+      - name: Stage Android engine
+        shell: bash
+        run: |
+          mkdir -p release
+          cp target/aarch64-linux-android/release/mantissa release/mantissa-3.7.2-aarch64-android-neon
+          file release/mantissa-3.7.2-aarch64-android-neon
+
+      - name: Upload Android ARM64 engine
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mantissa-3.7.2-Android-ARM64-NEON
+          path: release/mantissa-3.7.2-aarch64-android-neon
+          if-no-files-found: error
